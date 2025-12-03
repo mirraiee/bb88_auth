@@ -82,7 +82,6 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Signup')),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
