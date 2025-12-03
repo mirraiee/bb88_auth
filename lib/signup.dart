@@ -33,15 +33,19 @@ class _SignupPageState extends State<SignupPage> {
     final confirm = _confirmController.text;
 
     if (username.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fill all fields')));
       return;
     }
+
     if (password != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
     setState(() => _loading = true);
+
     try {
       final resp = await http.post(
         Uri.parse(_signupUrl),
@@ -53,27 +57,37 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (resp.statusCode != 200) {
-        final snippet = resp.body.length > 200 ? resp.body.substring(0, 200) + '...' : resp.body;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Server error ${resp.statusCode}: $snippet')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email alrelady in use')),
+        );
         return;
       }
 
       Map<String, dynamic> jsonBody;
+
       try {
-        jsonBody = json.decode(resp.body) as Map<String, dynamic>;
+        jsonBody = json.decode(resp.body);
       } catch (e) {
-        final snippet = resp.body.length > 200 ? resp.body.substring(0, 200) + '...' : resp.body;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid server response: $snippet')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unexpected server response.')),
+        );
         return;
       }
 
+      final message = jsonBody['message']?.toString() ?? 'Unknown error';
       final success = jsonBody['success'] == true;
-      final message = jsonBody['message'] ?? (success ? 'Registered' : 'Registration failed');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
-      if (success) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+
+      if (success) {
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Network error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Network error: $e')),
+      );
     } finally {
       setState(() => _loading = false);
     }
@@ -96,27 +110,68 @@ class _SignupPageState extends State<SignupPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Sign up', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 26, color: Color(0xFF1C1C1C))),
+                const Text(
+                  'Sign up',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 26,
+                    color: Color(0xFF1C1C1C),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Username', border: OutlineInputBorder())),
+                TextField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()), keyboardType: TextInputType.emailAddress),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()), obscureText: true),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: _confirmController, decoration: const InputDecoration(labelText: 'Confirm Password', border: OutlineInputBorder()), obscureText: true),
+                TextField(
+                  controller: _confirmController,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _doRegister,
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2EB62C)),
-                    child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Register'),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2EB62C)),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Register'),
                   ),
                 ),
                 const SizedBox(height: 10),
-                TextButton(onPressed: _loading ? null : () => Navigator.pop(context), child: const Text('Already have an account? Sign In')),
+                TextButton(
+                  onPressed: _loading ? null : () => Navigator.pop(context),
+                  child: const Text('Already have an account? Sign In'),
+                ),
               ],
             ),
           ),

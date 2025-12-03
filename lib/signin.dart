@@ -34,55 +34,53 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logging in...')));
-
     try {
-      final resp = await http.post(Uri.parse(_loginUrl), body: {
-        'username': username,
-        'password': password,
-      }).timeout(const Duration(seconds: 8));
+      final resp = await http.post(
+        Uri.parse(_loginUrl),
+        body: {'username': username, 'password': password},
+      ).timeout(const Duration(seconds: 8));
 
-      // Try parse JSON and pick "message" if present
       String? serverMessage;
       Map<String, dynamic>? jsonBody;
       try {
         final decoded = json.decode(resp.body);
         if (decoded is Map<String, dynamic>) {
           jsonBody = decoded;
-          serverMessage = (decoded['message'] ?? decoded['msg'] ?? decoded['error'])?.toString();
+          serverMessage = decoded['message']?.toString();
         }
       } catch (_) {
-        // invalid json -> leave serverMessage null
+        // ignore invalid json
       }
 
-      if (resp.statusCode == 200 && jsonBody != null) {
-        final success = jsonBody['success'] == true;
-        final message = serverMessage ?? (success ? 'Login successful' : 'Login failed');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-        if (success) {
-          final usernameFromServer = (jsonBody['user']?['username'] ?? '') as String;
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => HomePage(username: usernameFromServer)),
-          );
-        }
+      String friendly;
+      // Success case
+      if (resp.statusCode == 200 && jsonBody != null && (jsonBody['success'] == true || jsonBody['success'] == 1)) {
+        friendly = serverMessage ?? 'Login successful';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendly)));
+        final usernameFromServer = (jsonBody['user']?['username'] ?? '') as String;
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(username: usernameFromServer)));
         return;
       }
 
-      // Non-200 or non-json: prefer server message if present, otherwise map code -> friendly text
+      // Prefer server message, map it to a friendly sentence if known
       if (serverMessage != null && serverMessage.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(serverMessage)));
+        final map = <String, String>{
+          'User not found': 'No account found with that username or email.',
+          'Invalid password': 'Incorrect password. Please try again.',
+          'Email already in use': 'That email is already registered.',
+          'Missing username/email or password': 'Please fill in all required fields.',
+        };
+        friendly = map[serverMessage] ?? serverMessage; // fallback to serverMessage if unknown
       } else {
-        String friendly;
-        if (resp.statusCode == 400) friendly = 'Please fill all required fields.';
+        // Fallback based on status code
+        if (resp.statusCode == 400) friendly = 'Please fill in all required fields.';
         else if (resp.statusCode == 401) friendly = 'Invalid username or password.';
-        else if (resp.statusCode == 403) friendly = 'Access denied.';
-        else if (resp.statusCode == 404) friendly = 'Service not found.';
-        else if (resp.statusCode == 500) friendly = 'Server error. Try again later.';
-        else friendly = 'Unexpected error (${resp.statusCode}). Please try again.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendly)));
+        else if (resp.statusCode == 409) friendly = 'Conflict. Possibly already registered.';
+        else friendly = 'Server error. Please try again later.';
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendly)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network error. Check your connection.')));
     }
