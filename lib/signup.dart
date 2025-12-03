@@ -13,10 +13,6 @@ class _SignupPageState extends State<SignupPage> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
-  // Choose the right host:
-  // - Android emulator: use 10.0.2.2
-  // - Desktop / iOS simulator: use 127.0.0.1
-  // - Real device: use your PC LAN IP (e.g. http://192.168.x.y/flutter_api/insert_user.php)
   final String _signupUrl = 'http://127.0.0.1/flutter_api/insert_user.php';
 
   bool _loading = false;
