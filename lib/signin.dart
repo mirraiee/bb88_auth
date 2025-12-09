@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'signup.dart';
-import 'home.dart'; 
+import 'home.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,7 +13,6 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   final String _loginUrl = 'http://127.0.0.1/flutter_api/get_users.php';
 
-
   @override
   void dispose() {
     _usernameController.dispose();
@@ -23,174 +21,152 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _goToSignup() {
-    Navigator.pushNamed(context, '/signup'); // uses named route from main.dart
+    Navigator.pushNamed(context, '/signup');
   }
 
   Future<void> _attemptLogin() async {
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text;
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter username/email and password')));
+    final user = _usernameController.text.trim();
+    final pass = _passwordController.text;
+
+    if (user.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter username/email and password')),
+      );
       return;
     }
 
     try {
-      final resp = await http.post(
-        Uri.parse(_loginUrl),
-        body: {'username': username, 'password': password},
-      ).timeout(const Duration(seconds: 8));
+      final resp = await http.post(Uri.parse(_loginUrl),
+          body: {'username': user, 'password': pass});
 
-      String? serverMessage;
       Map<String, dynamic>? jsonBody;
       try {
-        final decoded = json.decode(resp.body);
-        if (decoded is Map<String, dynamic>) {
-          jsonBody = decoded;
-          serverMessage = decoded['message']?.toString();
-        }
-      } catch (_) {
-        // ignore invalid json
-      }
+        jsonBody = json.decode(resp.body);
+      } catch (_) {}
 
-      String friendly;
-      // Success case
-      if (resp.statusCode == 200 && jsonBody != null && (jsonBody['success'] == true || jsonBody['success'] == 1)) {
-        friendly = serverMessage ?? 'Login successful';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendly)));
-        final usernameFromServer = (jsonBody['user']?['username'] ?? '') as String;
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(username: usernameFromServer)));
+      if (resp.statusCode == 200 &&
+          jsonBody != null &&
+          (jsonBody['success'] == true || jsonBody['success'] == 1)) {
+        final usernameFromServer =
+            jsonBody['user']?['username'] ?? _usernameController.text;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Login successful')));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage(username: usernameFromServer)),
+        );
         return;
       }
 
-      // Prefer server message, map it to a friendly sentence if known
-      if (serverMessage != null && serverMessage.isNotEmpty) {
-        final map = <String, String>{
-          'User not found': 'No account found with that username or email.',
-          'Invalid password': 'Incorrect password. Please try again.',
-          'Email already in use': 'That email is already registered.',
-          'Missing username/email or password': 'Please fill in all required fields.',
-        };
-        friendly = map[serverMessage] ?? serverMessage; // fallback to serverMessage if unknown
-      } else {
-        // Fallback based on status code
-        if (resp.statusCode == 400) friendly = 'Please fill in all required fields.';
-        else if (resp.statusCode == 401) friendly = 'Invalid username or password.';
-        else if (resp.statusCode == 409) friendly = 'Conflict. Possibly already registered.';
-        else friendly = 'Server error. Please try again later.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendly)));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Network error. Check your connection.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(jsonBody?['message'] ?? 'Invalid login')),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    final fieldPadding = const EdgeInsets.symmetric(vertical: 8);
+    final buttonHeight = size.height * 0.055;
+    const maxFormWidth = 380.0;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFC5E8B7), Color(0xFF2EB62C)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+          image: DecorationImage(
+            image: AssetImage('assets/watermark.jpg'),
+            fit: BoxFit.cover,
           ),
         ),
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(30.0),
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.7,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: maxFormWidth),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
                     'Welcome',
-                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
                       fontSize: 26,
-                      color: Color(0xFF1C1C1C),
+                      color: Colors.black,
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Sign In to continue',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.normal,
-                      fontSize: 18,
-                      color: Color(0xFF1C1C1C),
-                    ),
                   ),
                   const SizedBox(height: 18),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.07,
+                  const Text(
+                    'Sign in to continue',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Username field
+                  Padding(
+                    padding: fieldPadding,
                     child: TextField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
                         labelText: 'Username',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                         border: OutlineInputBorder(),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.07,
+
+                  // Password field
+                  Padding(
+                    padding: fieldPadding,
                     child: TextField(
                       controller: _passwordController,
                       decoration: const InputDecoration(
                         labelText: 'Password',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                         border: OutlineInputBorder(),
                       ),
                       obscureText: true,
                     ),
                   ),
-                  const SizedBox(height: 26),
+
+                  const SizedBox(height: 14),
+
+                  // Login button
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.07,
+                    height: buttonHeight,
                     child: ElevatedButton(
                       onPressed: _attemptLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 0, 0, 0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        backgroundColor: Colors.black,
                       ),
                       child: const Text(
                         'Login',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.white),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 26),
-                  const Text(
-                    'Forgot Password?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color.fromARGB(255, 255, 255, 255),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(height: 14),
+
                   TextButton(
                     onPressed: _goToSignup,
                     child: const Text(
                       "Don't have an account? Sign Up",
+                      style: TextStyle(fontFamily: 'Poppins', color: Colors.black),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        color: Color.fromARGB(255, 255, 255, 255),
-                      ),
                     ),
                   ),
                 ],

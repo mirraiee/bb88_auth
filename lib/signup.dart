@@ -26,19 +26,19 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  Future<void> _doRegister() async {
+  Future<void> _register() async {
     final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final pass = _passwordController.text;
     final confirm = _confirmController.text;
 
-    if (username.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fill all fields')));
+    if (username.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Fill all fields')));
       return;
     }
 
-    if (password != confirm) {
+    if (pass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Passwords do not match')));
       return;
@@ -47,132 +47,166 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _loading = true);
 
     try {
-      final resp = await http.post(
-        Uri.parse(_signupUrl),
-        body: {
-          'username': username,
-          'email': email,
-          'password': password,
-        },
-      );
+      final resp =
+          await http.post(Uri.parse(_signupUrl), body: {
+        'username': username,
+        'email': email,
+        'password': pass,
+      });
 
-      if (resp.statusCode != 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email alrelady in use')),
-        );
-        return;
-      }
-
-      Map<String, dynamic> jsonBody;
-
+      Map<String, dynamic>? jsonBody;
       try {
         jsonBody = json.decode(resp.body);
-      } catch (e) {
+      } catch (_) {}
+
+      if (resp.statusCode == 200 && jsonBody != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(jsonBody['message'])));
+
+        if (jsonBody['success'] == true) {
+          Navigator.pop(context);
+        }
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unexpected server response.')),
-        );
-        return;
+            const SnackBar(content: Text('Unexpected server response')));
       }
-
-      final message = jsonBody['message']?.toString() ?? 'Unknown error';
-      final success = jsonBody['success'] == true;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-
-      if (success) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Network error: $e')),
-      );
-    } finally {
-      setState(() => _loading = false);
+    } catch (_) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Network error')));
     }
+
+    setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    final fieldPadding = const EdgeInsets.symmetric(vertical: 8);
+    final buttonHeight = size.height * 0.055; // compact responsive button
+    const maxFormWidth = 380.0;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFC5E8B7), Color(0xFF2EB62C)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+          image: DecorationImage(
+            image: AssetImage('assets/watermark.jpg'),
+            fit: BoxFit.cover,
           ),
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Sign up',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 26,
-                    color: Color(0xFF1C1C1C),
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: maxFormWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Sign Up',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 26,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Create your account',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 18),
+
+                  Padding(
+                    padding: fieldPadding,
+                    child: TextField(
+                      controller: _usernameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Username',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+
+                  Padding(
+                    padding: fieldPadding,
+                    child: TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
                   ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _confirmController,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
+
+                  Padding(
+                    padding: fieldPadding,
+                    child: TextField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                    ),
                   ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _doRegister,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2EB62C)),
-                    child: _loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Register'),
+
+                  Padding(
+                    padding: fieldPadding,
+                    child: TextField(
+                      controller: _confirmController,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm Password',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: _loading ? null : () => Navigator.pop(context),
-                  child: const Text('Already have an account? Sign In'),
-                ),
-              ],
+
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    height: buttonHeight,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Register',
+                              style: TextStyle(fontSize: 14, color: Colors.white),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Already have an account? Sign In',
+                      style: TextStyle(fontFamily: 'Poppins', color: Colors.black),
+                    ),
+                  )
+                ],
+              ),
             ),
           ),
         ),
