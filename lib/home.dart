@@ -25,6 +25,7 @@ class HomePage extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/');
               },
               child: const Text('Log out'),
+              //web flutter test
             ),
           ],
         ),
