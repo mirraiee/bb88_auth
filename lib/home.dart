@@ -10,7 +10,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        automaticallyImplyLeading: false, // removes automatic back button
+        automaticallyImplyLeading: false, 
       ),
       body: Center(
         child: Column(
@@ -21,7 +21,7 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // log out -> go back to login (replace with route if using named routes)
+                
                 Navigator.pushReplacementNamed(context, '/');
               },
               child: const Text('Log out'),
